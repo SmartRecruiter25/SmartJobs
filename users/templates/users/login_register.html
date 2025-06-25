@@ -1,0 +1,77 @@
+{% extends 'main.html' %}
+{% load static %}
+
+{% block title %}Login / Register{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded shadow mt-10">
+  <div class="flex justify-center mb-6">
+    <button id="loginTab" class="w-1/2 py-2 text-center font-semibold border-b-2 border-blue-600 text-blue-600">Login</button>
+    <button id="registerTab" class="w-1/2 py-2 text-center font-semibold text-gray-500 hover:text-blue-600">Register</button>
+  </div>
+
+  <!-- Login Form -->
+  <form method="POST" action="{% url 'login' %}" id="loginForm" class="space-y-4">
+    {% csrf_token %}
+    <div>
+      <label for="username" class="block text-sm font-medium">Username</label>
+      <input type="text" name="username" id="username" class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    </div>
+    <div>
+      <label for="password" class="block text-sm font-medium">Password</label>
+      <input type="password" name="password" id="password" class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    </div>
+    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+  </form>
+
+  <!-- Register Form -->
+  <form method="POST" action="{% url 'register' %}" id="registerForm" class="space-y-4 hidden mt-6">
+    {% csrf_token %}
+    <div>
+      <label for="name" class="block text-sm font-medium">Full Name</label>
+      <input type="text" name="name" id="name" class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    </div>
+    <div>
+      <label for="email" class="block text-sm font-medium">Email</label>
+      <input type="email" name="email" id="email" class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    </div>
+    <div>
+      <label for="username_reg" class="block text-sm font-medium">Username</label>
+      <input type="text" name="username" id="username_reg" class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    </div>
+    <div>
+      <label for="password1" class="block text-sm font-medium">Password</label>
+      <input type="password" name="password1" id="password1" class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    </div>
+    <div>
+      <label for="password2" class="block text-sm font-medium">Confirm Password</label>
+      <input type="password" name="password2" id="password2" class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+    </div>
+    <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Create Account</button>
+  </form>
+</div>
+
+<!-- Tab Switch Script -->
+<script>
+  const loginTab = document.getElementById('loginTab');
+  const registerTab = document.getElementById('registerTab');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+
+  loginTab.addEventListener('click', () => {
+    loginForm.classList.remove('hidden');
+    registerForm.classList.add('hidden');
+    loginTab.classList.add('border-blue-600', 'text-blue-600');
+    registerTab.classList.remove('border-blue-600', 'text-blue-600');
+    registerTab.classList.add('text-gray-500');
+  });
+
+  registerTab.addEventListener('click', () => {
+    registerForm.classList.remove('hidden');
+    loginForm.classList.add('hidden');
+    registerTab.classList.add('border-blue-600', 'text-blue-600');
+    loginTab.classList.remove('border-blue-600', 'text-blue-600');
+    loginTab.classList.add('text-gray-500');
+  });
+</script>
+{% endblock %}

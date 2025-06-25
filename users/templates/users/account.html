@@ -1,0 +1,62 @@
+{% extends 'main.html' %}
+{% block title %}My Account{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md mt-8">
+  <div class="flex items-center space-x-6">
+    <img class="w-24 h-24 rounded-full object-cover ring-2 ring-indigo-500"
+         src="{{ profile.profile_image.url }}" alt="{{ profile.name }}">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800">{{ profile.name }}</h2>
+      <p class="text-gray-600">@{{ profile.username }}</p>
+      {% if profile.role %}
+        <span class="inline-block mt-1 px-3 py-1 text-sm bg-indigo-100 text-indigo-800 rounded-full">
+          {{ profile.get_role_display }}
+        </span>
+      {% endif %}
+    </div>
+    <div class="ml-auto">
+      <a href="{% url 'edit-account' %}" class="text-sm text-indigo-600 hover:underline">Edit Profile</a>
+    </div>
+  </div>
+
+  {% if profile.short_intro %}
+    <p class="mt-4 text-gray-700">{{ profile.short_intro }}</p>
+  {% endif %}
+
+  {% if profile.bio %}
+    <div class="mt-4">
+      <h3 class="text-lg font-semibold text-gray-800">Bio</h3>
+      <p class="text-gray-600">{{ profile.bio }}</p>
+    </div>
+  {% endif %}
+
+  <div class="mt-6">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-800">Skills</h3>
+      <a href="{% url 'create-skill' %}" class="text-sm text-green-600 hover:underline">+ Add Skill</a>
+    </div>
+    
+    {% if skills %}
+      <ul class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for skill in skills %}
+          <li class="bg-gray-50 p-4 rounded shadow flex items-center justify-between">
+            <div>
+              <h4 class="font-semibold text-gray-800">{{ skill.name }}</h4>
+              {% if skill.description %}
+                <p class="text-sm text-gray-600">{{ skill.description|truncatechars:100 }}</p>
+              {% endif %}
+            </div>
+            <div class="space-x-2">
+              <a href="{% url 'update-skill' skill.id %}" class="text-blue-600 hover:underline text-sm">Edit</a>
+              <a href="{% url 'delete-skill' skill.id %}" class="text-red-600 hover:underline text-sm">Delete</a>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="mt-4 text-gray-600">You haven't added any skills yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

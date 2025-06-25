@@ -1,0 +1,22 @@
+{% extends 'main.html' %}
+
+{% block content %}
+  <h1>{{ job.title }}</h1>
+  <p><strong>Company:</strong> {{ job.employer.company_name }}</p>
+  <p><strong>Description:</strong> {{ job.description }}</p>
+  <p><strong>Salary:</strong> {{ job.salary_range }}</p>
+  <p><strong>Type:</strong> {{ job.get_job_type_display }}</p>
+  <p><strong>Location:</strong> {{ job.location }}</p>
+  <p><strong>Status:</strong> {{ job.get_status_display }}</p>
+  <p><strong>Skills Required:</strong>
+    {% for skill in job.skills_required.all %}
+      {{ skill.name }}{% if not forloop.last %}, {% endif %}
+    {% empty %}
+      None listed.
+    {% endfor %}
+  </p>
+
+  {% if request.user.is_authenticated and request.user.profile.role == 'job_seeker' %}
+    <a href="#">Apply Now</a>  <!-- لاحقاً اربطه بصفحة التقديم -->
+  {% endif %}
+{% endblock %}
