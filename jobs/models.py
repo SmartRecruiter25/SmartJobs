@@ -1,4 +1,5 @@
 from django.db import models
+from users.models import Profile
 import uuid
 
 class Job(models.Model):
@@ -17,7 +18,6 @@ class Job(models.Model):
         choices=[('full_time', 'Full Time'), ('part_time', 'Part Time'), ('remote', 'Remote')],
         null=True, blank=True
     )
-    location = models.CharField(max_length=200, blank=True, null=True)
     experience_required = models.CharField(max_length=100, blank=True, null=True)
     deadline = models.DateField(null=True, blank=True)
     skills_required = models.ManyToManyField('users.Skill', blank=True)
@@ -29,8 +29,14 @@ class Job(models.Model):
     ]
     status = models.CharField(max_length=10, choices=JOB_STATUS_CHOICES, default='open')
 
+    LOCATION_CHOICES = [
+    ('remote', 'Remote'),
+    ('onsite', 'On-site'),
+    ('hybrid', 'Hybrid'),
+]
+    location = models.CharField(max_length=50, choices=LOCATION_CHOICES, default='open')
     created = models.DateTimeField(auto_now_add=True)
-    id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
 
     def __str__(self):
         return self.title
@@ -70,8 +76,11 @@ class JobApplication(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)
 
+    class Meta:
+        unique_together = ('job','applicant')
+
     def __str__(self):
-        return f"{self.applicant.username} - {self.job.title}"
+        return f"{self.applicant.user.username} - {self.job.title}"
 
 
 
@@ -132,3 +141,14 @@ class MatchScore(models.Model):
 
     def __str__(self):
         return f"{self.profile.username} - {self.job.title} - {self.score}"
+
+class ApplicationReview(models.Model):
+    application = models.OneToOneField(JobApplication, on_delete=models.CASCADE, related_name='review')
+    reviewer = models.ForeignKey(Profile, on_delete=models.CASCADE, limit_choices_to={'role': 'employer'})
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)] , default=3)
+    comment = models.TextField(blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+
+    def __str__(self):
+        return f"Review by {self.reviewer.username} on {self.application}"

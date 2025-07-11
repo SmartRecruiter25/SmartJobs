@@ -1,15 +1,19 @@
 from django.urls import path
 from . import views
-from .views import loginUser, registerUser, userDashboard
+from .views import loginUser, registerUser, userDashboard ,hello
+from .views import GenerateCVGeminiView , GetMyCV
+
+
 
 urlpatterns = [
     
     
     path('login/', loginUser, name="login"),
     path('register/', registerUser, name="register"),
-
-    
     path('dashboard/', userDashboard, name="dashboard"),
+    path('generate-cv/', GenerateCVGeminiView.as_view(), name='generate-cv'),
+    path('my-cv/', GetMyCV.as_view(), name='get-my-cv'),
+    path('hello/', hello, name='hello'),
 
     
     path('profiles/', views.ProfileListView.as_view(), name='api-profiles'),
@@ -27,7 +31,5 @@ urlpatterns = [
     path('skill-proofs/<uuid:pk>/', views.SkillProofDetailView.as_view(), name='api-skill-proof-detail'),
 
     
-    path('create-skill/', views.createSkill, name="create-skill"),
-    path('update-skill/<uuid:pk>/', views.updateSkill, name="update-skill"),
-    path('delete-skill/<uuid:pk>/', views.deleteSkill, name="delete-skill"),
+
 ]

@@ -84,6 +84,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         Profile.objects.create(user=user, role=role)
         return user
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+         raise serializers.ValidationError("This username is already taken.")
+        return value
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

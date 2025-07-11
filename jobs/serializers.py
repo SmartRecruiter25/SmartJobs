@@ -7,6 +7,7 @@ from users.models import Skill, Profile
 from users.serializers import SkillSerializer, ProfileSerializer
 
 
+
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
@@ -18,20 +19,20 @@ class JobSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     skills_required = SkillSerializer(many=True, read_only=True)
     application_count = serializers.ReadOnlyField()
+
     class Meta:
         model = Job
-        fields = ['id', 'employer', 'title', 'description', 'featured_image', 'tags',
-            'salary_range', 'job_type', 'location', 'experience_required',
-            'deadline', 'skills_required', 'status', 'created', 'application_count']
+        fields = '__all__'
 
 
 class JobCreateUpdateSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all(), required=False)
-    skills_required = serializers.PrimaryKeyRelatedField(many=True, queryset=SkillSerializer.Meta.model.objects.all(), required=False)
+    skills_required = serializers.PrimaryKeyRelatedField(many=True, queryset=Skill.objects.all(), required=False)
+
     class Meta:
         model = Job
         fields = [
-            'id', 'employer', 'title', 'description', 'featured_image', 'tags',
+            'id','employer', 'title', 'description', 'featured_image', 'tags',
             'salary_range', 'job_type', 'location', 'experience_required',
             'deadline', 'skills_required', 'status'
         ]
@@ -52,9 +53,10 @@ class JobApplicationCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobApplication
         fields = [
-            'id', 'applicant', 'job', 'resume', 'cover_letter',
-            'cv_text', 'match_score', 'status'
+            'id', 'job', 'resume', 'cover_letter', 'cv_text',
+            'status', 'match_score', 'applicant'
         ]
+        read_only_fields = ['status', 'match_score', 'applicant']   
 
 
 class ApplicationReviewSerializer(serializers.ModelSerializer):
@@ -62,13 +64,13 @@ class ApplicationReviewSerializer(serializers.ModelSerializer):
     application = JobApplicationSerializer(read_only=True)
     class Meta:
         model = ApplicationReview
-        fields = ['id', 'application', 'reviewer', 'value', 'comment', 'created']
+        fields = ['id', 'application', 'reviewer', 'rating', 'comment', 'created']
 
 
 class ApplicationReviewCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApplicationReview
-        fields = ['id', 'application', 'reviewer', 'value', 'comment']
+        fields = ['id', 'application', 'rating', 'comment']
 
 
 class SkillChallengeSerializer(serializers.ModelSerializer):

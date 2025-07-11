@@ -1,4 +1,5 @@
-from django.shortcuts import render, redirect, get_object_or_404
+
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -23,43 +24,23 @@ from .serializers import (
     ProfileSkillSerializer,
     SkillProofSerializer,
 )
+import google.generativeai as genai
+from django.conf import settings
+from .models import Profile
 
-class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer
+
+
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def registerUser(request):
-    data = request.data
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-    role = data.get('role')
-
-    if not username or not email or not password or not role:
-        return Response({'error': 'Please fill in all required fields'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if User.objects.filter(username=username).exists():
-        return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        user = User.objects.create_user(username=username, email=email, password=password)
-        Profile.objects.create(user=user, username=username, email=email, role=role)
+    serializer = RegisterSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
         return Response({'message': 'Registration successful'}, status=status.HTTP_201_CREATED)
-    except IntegrityError:
-        return Response({'error': 'An error occurred during registration'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def userDashboard(request):
-    user = request.user
-    return Response({'message': f'Welcome {user.username}'})
-
-from django.contrib.auth import authenticate
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework import status
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -73,6 +54,13 @@ def loginUser(request):
         return Response({'message': 'Login successful', 'username': user.username})
     else:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def userDashboard(request):
+    user = request.user
+    return Response({'message': f'Welcome {user.username}'})
+
 
 
 class ProfileListView(generics.ListAPIView):
@@ -120,100 +108,65 @@ class SkillDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Skill.objects.all()
     serializer_class = SkillSerializer
     permission_classes = [IsAuthenticated]
-    
+
 class SkillProofDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = SkillProof.objects.all()
     serializer_class = SkillProofSerializer
     permission_classes = [IsAuthenticated]
 
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
+
+@api_view(['GET'])
+def hello(request):
+    return Response({"message": "Hello from Smart Recruiter!"})
 
 
+genai.configure(api_key="AIzaSyCOpqFafFAR0FLT8OuFjuGgbpFoK1conZk")
 
-def logoutUser(request):
-    logout(request)
-    messages.info(request, 'Logged out successfully.')
-    return redirect('login')
+class GenerateCVGeminiView(APIView):
+    permission_classes = [IsAuthenticated]
 
-def profiles(request):
-    search_query = request.GET.get('search_query', '')
-    profiles = Profile.objects.filter(name__icontains=search_query)
-    return render(request, 'users/profiles.html', {'profiles': profiles})
+    def post(self, request):
+        user = request.user  # ← مهم لحفظ الـ CV
 
-def userProfile(request, pk):
-    profile = get_object_or_404(Profile, id=pk)
-    topSkills = profile.skills.exclude(description__exact="")
-    otherSkills = profile.skills.filter(description="")
+        data = request.data
+        name = data.get("name")
+        email = data.get("email")
+        phone = data.get("phone", "")
+        skills = data.get("skills", [])
+        experience = data.get("experience", "")
 
-    context = {
-        'profile': profile,
-        'topSkills': topSkills,
-        'otherSkills': otherSkills,
-    }
-    return render(request, 'users/user-profile.html', context)
+        prompt = f"""
+Generate a professional CV based on:
+Name: {name}
+Email: {email}          
+Phone: {phone}
+Skills: {', '.join(skills)}
+Experience: {experience}
 
-@login_required(login_url='login')
-def userAccount(request):
-    profile, created = Profile.objects.get_or_create(user=request.user)
-    skills = profile.skills.all()
+Make it clean, professional and formatted in sections.
+        """
 
-    context = {
-        'profile': profile,
-        'skills': skills,
-    }
-    return render(request, 'users/account.html', context)
+        try:
+            model = genai.GenerativeModel(model_name="gemini-pro")
+            response = model.generate_content(prompt)
+            cv_text = response.text
 
-@login_required(login_url='login')
-def editAccount(request):
-    profile = request.user.profile
-    form = ProfileForm(instance=profile)
+            # تخزين الـ CV في ملف المستخدم
+            profile = Profile.objects.get(user=user)
+            profile.cv_text = cv_text
+            profile.save()
 
-    if request.method == 'POST':
-        form = ProfileForm(request.POST, request.FILES, instance=profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Profile updated successfully.')
-            return redirect('account')
+            return Response({"cv_text": cv_text}, status=status.HTTP_200_OK)
 
-    return render(request, 'users/profile_form.html', {'form': form})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@login_required(login_url='login')
-def createSkill(request):
-    form = SkillForm()
 
-    if request.method == 'POST':
-        form = SkillForm(request.POST)
-        if form.is_valid():
-            skill = form.save()
-            profile = request.user.profile
-            ProfileSkill.objects.create(profile=profile, skill=skill)
-            messages.success(request, 'Skill added successfully.')
-            return redirect('account')
+class GetMyCV(APIView):
+    permission_classes = [IsAuthenticated]
 
-    return render(request, 'users/skill_form.html', {'form': form})
-
-@login_required(login_url='login')
-def updateSkill(request, pk):
-    profile = request.user.profile
-    skill = get_object_or_404(profile.skills, id=pk)
-    form = SkillForm(instance=skill)
-
-    if request.method == 'POST':
-        form = SkillForm(request.POST, instance=skill)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Skill updated successfully.')
-            return redirect('account')
-
-    return render(request, 'users/skill_form.html', {'form': form})
-
-@login_required(login_url='login')
-def deleteSkill(request, pk):
-    profile = request.user.profile
-    skill = get_object_or_404(profile.skills, id=pk)
-
-    if request.method == 'POST':
-        profile.skills.remove(skill)
-        messages.success(request, 'Skill removed successfully.')
-        return redirect('account')
-
-    return render(request, 'delete_template.html', {'object': skill})
+    def get(self, request):
+        profile = Profile.objects.get(user=request.user)
+        return Response({"cv_text": profile.cv_text}, status=status.HTTP_200_OK)
