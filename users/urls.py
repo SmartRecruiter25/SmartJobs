@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from .views import loginUser, registerUser, userDashboard ,hello
-from .views import GenerateCVGeminiView , GetMyCV
+
 
 
 
@@ -11,8 +11,8 @@ urlpatterns = [
     path('login/', loginUser, name="login"),
     path('register/', registerUser, name="register"),
     path('dashboard/', userDashboard, name="dashboard"),
-    path('generate-cv/', GenerateCVGeminiView.as_view(), name='generate-cv'),
-    path('my-cv/', GetMyCV.as_view(), name='get-my-cv'),
+    
+    
     path('hello/', hello, name='hello'),
 
     

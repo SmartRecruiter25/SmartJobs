@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required 
 
 from .models import (
     Job, Tag, JobApplication, ApplicationReview,
@@ -9,15 +9,16 @@ from .forms import JobForm
 
 from rest_framework import viewsets
 from rest_framework import filters
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly , IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.exceptions import ValidationError
 
 from .serializers import (
     JobSerializer, JobCreateUpdateSerializer, TagSerializer,
-    JobApplicationSerializer, JobApplicationCreateUpdateSerializer,  # ✅ هذا السطر ضروري
+    JobApplicationSerializer, JobApplicationCreateUpdateSerializer,  
     ApplicationReviewSerializer,ApplicationReviewCreateUpdateSerializer,
      SkillChallengeSerializer, ChallengeResultSerializer, MatchScoreSerializer
 )
@@ -39,9 +40,16 @@ class JobViewSet(viewsets.ModelViewSet):
         return JobSerializer
 
     def perform_create(self, serializer):
-        print("AUTH USER:", self.request.user)
-        print("IS AUTHENTICATED:", self.request.user.is_authenticated)
         serializer.save(employer=self.request.user.profile)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_jobs(self, request):
+        profile = request.user.profile
+        jobs = Job.objects.filter(employer=profile).order_by('-created')
+        serializer = self.get_serializer(jobs, many=True)
+        return Response(serializer.data)
+
+
 
 
 
@@ -64,20 +72,35 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         profile = self.request.user.profile
         job = serializer.validated_data['job']
 
-        # ✅ منع التقديم المكرر
+        
         if JobApplication.objects.filter(applicant=profile, job=job).exists():
-            raise ValidationError("لقد قمت بالتقديم على هذه الوظيفة مسبقًا.")
+            raise ValidationError("You have already applied for this job.")
 
         serializer.save(applicant=profile)
 
-    # ✅ رسالة نجاح مخصصة بعد POST
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
         response.data = {
-            "message": "تم التقديم على الوظيفة بنجاح 🎉",
+            "message": "Job application submitted successfully 🎉",
             "application": response.data
         }
         return response
+
+    @action(detail=False, methods=['get'], url_path='for-job/(?P<job_id>[0-9a-f-]+)', permission_classes=[IsAuthenticated])
+    def applications_for_job(self, request, job_id=None):
+        user_profile = request.user.profile
+        job = get_object_or_404(Job, id=job_id, employer=user_profile)
+
+        applications = JobApplication.objects.filter(job=job).order_by('-created')
+        serializer = self.get_serializer(applications, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='my-applications', permission_classes=[IsAuthenticated])
+    def my_applications(self, request):
+        profile = request.user.profile
+        applications = JobApplication.objects.filter(applicant=profile).order_by('-created')
+        serializer = self.get_serializer(applications, many=True)
+        return Response(serializer.data)
 
 
 

@@ -15,7 +15,7 @@ urlpatterns = [
     path('api/auth/', include([
         path('', include('djoser.urls')),
         path('', include('djoser.urls.jwt')),
-        path('', include('users.urls')),  # ضفنا users ضمن auth
+        path('', include('users.urls')),  
     ])),
 
     path('api/jobs/', include('jobs.urls')),

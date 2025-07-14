@@ -77,16 +77,21 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         role = validated_data.pop('role')
         email = validated_data['email'].lower()
+
         user = User.objects.create_user(
             username=validated_data['username'],
             email=email,
             password=validated_data['password']
         )
-        Profile.objects.create(user=user, role=role)
+
+        if not hasattr(user, 'profile'):
+            Profile.objects.create(user=user, role=role)
+
         return user
+
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
-         raise serializers.ValidationError("This username is already taken.")
+            raise serializers.ValidationError("This username is already taken.")
         return value
 
 

@@ -24,7 +24,7 @@ from .serializers import (
     ProfileSkillSerializer,
     SkillProofSerializer,
 )
-import google.generativeai as genai
+
 from django.conf import settings
 from .models import Profile
 
@@ -37,8 +37,18 @@ from .models import Profile
 def registerUser(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
-        return Response({'message': 'Registration successful'}, status=status.HTTP_201_CREATED)
+        try:
+            user = serializer.save()
+            return Response({
+                'message': 'Registration successful',
+                'user': {
+                    'username': user.username,
+                    'email': user.email
+                }
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print("🔥 Registration error:", str(e))
+            return Response({'error': str(e)}, status=500)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -122,51 +132,3 @@ def hello(request):
     return Response({"message": "Hello from Smart Recruiter!"})
 
 
-genai.configure(api_key="AIzaSyCOpqFafFAR0FLT8OuFjuGgbpFoK1conZk")
-
-class GenerateCVGeminiView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user  # ← مهم لحفظ الـ CV
-
-        data = request.data
-        name = data.get("name")
-        email = data.get("email")
-        phone = data.get("phone", "")
-        skills = data.get("skills", [])
-        experience = data.get("experience", "")
-
-        prompt = f"""
-Generate a professional CV based on:
-Name: {name}
-Email: {email}          
-Phone: {phone}
-Skills: {', '.join(skills)}
-Experience: {experience}
-
-Make it clean, professional and formatted in sections.
-        """
-
-        try:
-            model = genai.GenerativeModel(model_name="gemini-pro")
-            response = model.generate_content(prompt)
-            cv_text = response.text
-
-            # تخزين الـ CV في ملف المستخدم
-            profile = Profile.objects.get(user=user)
-            profile.cv_text = cv_text
-            profile.save()
-
-            return Response({"cv_text": cv_text}, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class GetMyCV(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        profile = Profile.objects.get(user=request.user)
-        return Response({"cv_text": profile.cv_text}, status=status.HTTP_200_OK)
